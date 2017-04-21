@@ -1,5 +1,7 @@
 package org.jinn.cassan.services;
 
+import static com.datastax.spark.connector.japi.CassandraJavaUtil.*;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -8,6 +10,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.jinn.cassan.conf.Configure;
 import org.jinn.cassan.connection.Connection;
 
@@ -15,6 +19,7 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.spark.connector.japi.CassandraRow;
 
 public class Test
 {
@@ -23,12 +28,14 @@ public class Test
 	File					sql_dir;
 
 	private List<String>	queries;
+	private List<String>	spark_queires;
 
 	public Test()
 	{
 		con = new Connection();
 		test_dir_path = Configure.get_conf_value("cs.keyspace");
 		sql_dir = Configure.sql_dir();
+		spark_queires = new ArrayList<String>();
 		queries = new ArrayList<String>();
 	}
 
@@ -64,7 +71,14 @@ public class Test
 					if (line.endsWith(";"))
 					{
 						query = new String(sb);
-						queries.add(query);
+						if (query.startsWith("spark,"))
+						{
+							spark_queires.add(query.trim());
+						} else
+						{
+							queries.add(query.trim());
+						}
+						sb.setLength(0);
 					}
 				}
 				br.close();
@@ -81,13 +95,52 @@ public class Test
 		Cluster cluster = con.get_cluster();
 		Session session = con.get_session(cluster);
 
-		ResultSet rs = session.execute(queries.get(0));
-		
-		for (Row r : rs)
+		for (String q : queries)
 		{
-			System.out.println(r);
+			long s = System.currentTimeMillis();
+			int rs_count = 0;
+			ResultSet rs = session.execute(q);
+			System.out.println(q + " " + rs);
+			for (Row r : rs)
+			{
+				rs_count++;
+				System.out.println(r);
+			}
+			long e = System.currentTimeMillis();
+			System.out.println((e - s) + "ms rs_count: " + rs_count);
 		}
-		
+
 		con.disConnection(cluster, session);
 	}
+
+	public void spark_test()
+	{
+		JavaSparkContext sc = con.spark_con();
+		JavaRDD<CassandraRow> data = null;
+		String arr[] = null;
+
+		long rs_count = 0L;
+
+		for (String sq : spark_queires)
+		{
+			long s = System.currentTimeMillis();
+			arr = sq.split("\\s*,\\s*");
+
+			if (arr.length >= 5)
+			{
+				data = javaFunctions(sc).cassandraTable(arr[1], arr[2]).where(arr[3], arr[4]);
+			} else if (arr.length >= 3)
+			{
+				data = javaFunctions(sc).cassandraTable(arr[1], arr[2]);
+			}
+
+			System.out.println(data.first());
+
+			long e = System.currentTimeMillis();
+			System.out.println((e - s) + "ms rs_count:" + rs_count);
+
+		}
+		con.spark_discon(sc);
+	}
+
 }
