@@ -21,14 +21,24 @@ cassandra - maven
 <pre><code>
 import com.datastax.driver.core.Cluster;<br>
 import com.datastax.driver.core.Session;<br>
+import com.datastax.driver.core.ResultSet;<br>
 
-public Cluster get_cluster(){
-	return Cluster.builder().addContactPoint("127.0.0.1").withPoolingOptions(pool).build();
+public class Test{
+
+	private static Cluster get_cluster(){
+		return Cluster.builder().addContactPoint("127.0.0.1").build();
+	}
+
+	public static void main(String[] args){
+		String key_space = "test";
+		Cluster cluster = get_cluster();
+		Session session = cluster.connect(key_space);
+		
+		String query = "select * from test.test_table;"
+		ResultSet rs = session.execute(query);
+		
+		int rs_count = rs.count();
+	}
 }
-
-public Session get_session(Cluster cluster, String key_space){
-	return Cluster.connect(key_space);
-}
-
 </code></pre>
 
