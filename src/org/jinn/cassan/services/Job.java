@@ -1,33 +1,34 @@
 package org.jinn.cassan.services;
 
-import java.lang.management.ManagementFactory;
-import java.sql.ResultSet;
-import java.text.SimpleDateFormat;
+import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
+
 import java.util.List;
 
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.spark.connector.japi.CassandraRow;
-import static com.datastax.spark.connector.japi.CassandraJavaUtil.*;
 
 public class Job extends Thread
 {
 
 	private Cluster				cluster;
-	private Session				session;
 	private JavaSparkContext	sc;
 	private int					id;
 	private List<String>		queries;
+	private boolean				suffle;
 
-	public Job(Cluster cluster, JavaSparkContext sc, int id, List<String> queries)
+	public Job(Cluster cluster, JavaSparkContext sc, int id, List<String> queries, boolean suffle)
 	{
 		this.cluster = cluster;
 		this.sc = sc;
 		this.id = id;
 		this.queries = queries;
+		this.suffle = suffle;
 	}
 
 	private void execute(Cluster cluster, Session session, JavaSparkContext sc, int id, String query)
@@ -49,23 +50,26 @@ public class Job extends Thread
 			long s_time = System.currentTimeMillis();
 			if (query_type.equals("select"))
 			{
-				ResultSet rs = (ResultSet) session.execute(query);
-				while (rs.next())
+				ResultSet rs = session.execute(query);
+				for (Row r : rs)
 				{
-					rs_count++;
+					if (null !=r)
+					{
+						rs_count++;
+					}
 				}
-				rs.close();
 			} else if (query_type.equals("spark"))
 			{
-				arr = query.split("\\s*,\\s*");
+				arr = query.replace(";", "").split("\\s*,\\s*");
 				JavaRDD<CassandraRow> data = null;
 				if (arr.length >= 5)
 				{
-					data = javaFunctions(sc).cassandraTable(arr[1], arr[2]).where(arr[3], arr[4]);
+					data = javaFunctions(sc).cassandraTable(arr[1], arr[2]).where(arr[3], arr[4]).limit(Long.parseLong(arr[5]));
 				} else if (arr.length >= 3)
 				{
 					data = javaFunctions(sc).cassandraTable(arr[1], arr[2]);
 				}
+				
 				rs_count = data.count();
 			}
 			long e_time = System.currentTimeMillis();
@@ -84,7 +88,6 @@ public class Job extends Thread
 	@Override
 	public void run()
 	{
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
 		int executed = 0;
 		long s_time = System.currentTimeMillis();
 
@@ -92,17 +95,29 @@ public class Job extends Thread
 
 		int idx = 0;
 		int size = queries.size();
-		int start_index = (int)(Math.random()*size);
-		String query =null;
-		if (size>0)
+		int start_index = (int) (Math.random() * size);
+		String query = null;
+		if (size > 0)
 		{
 			for (int i = 0; i < size; i++)
 			{
-				query = queries.get(i);
-				System.out.println(Job.currentThread().getName()+" "+query);
-				
-				
+				if (suffle)
+				{
+					query = queries.get((i + start_index) % size);
+				} else
+				{
+					query = queries.get(i);
+				}
+				System.out.println(Job.currentThread().getName() + " " + query);
+
+				execute(cluster, session, sc, idx, query);
+				executed++;
 			}
 		}
+
+		long e_time = System.currentTimeMillis();
+		long time_elapsed = (e_time - s_time);
+		session.close();
+		System.out.println(id + ": " + time_elapsed / 1000.0 + "s, " + executed);
 	}
 }

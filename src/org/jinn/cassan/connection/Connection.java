@@ -2,9 +2,9 @@ package org.jinn.cassan.connection;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.jinn.cassan.conf.Configure;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.Session;
 
 public class Connection
@@ -12,7 +12,10 @@ public class Connection
 
 	public Cluster get_cluster(String cs_host)
 	{
-		return Cluster.builder().addContactPoint(cs_host).build();
+		PoolingOptions pool = new PoolingOptions();
+		pool.setPoolTimeoutMillis(15);
+		pool.setHeartbeatIntervalSeconds(60);
+		return Cluster.builder().addContactPoint(cs_host).withPoolingOptions(pool).build();
 	}
 
 	public Session get_session(Cluster cluster, String cs_keyspace)

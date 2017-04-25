@@ -72,6 +72,9 @@ public class Configure
 		} else if (null != s && s.equals("sp.dc"))
 		{
 			key = "spark.dc";
+		} else if (null !=s && s.equals("cs.suffle"))
+		{
+			key = "cassandra.query.suffle";
 		}
 
 		if (null != key)

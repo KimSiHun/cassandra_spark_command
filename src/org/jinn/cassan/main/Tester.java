@@ -13,7 +13,6 @@ import org.jinn.cassan.services.Job;
 import org.jinn.cassan.services.ReadQuery;
 
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
 
 public class Tester
 {
@@ -30,11 +29,10 @@ public class Tester
 	private static String			sp_dc			= Configure.get_conf_value("sp.dc");
 	private static String			keyspace		= Configure.get_conf_value("cs.keyspace");
 	private static int				test_threads	= Integer.parseInt(Configure.get_conf_value("tester.threads"));
-
+	private static boolean			suffle			= Boolean.getBoolean(Configure.get_conf_value("cs.suffle"));
 	private static Cluster			cluster			= null;
-	private static Session			session			= null;
 	private static Cluster			spark_cluster	= null;
-	private static Session			spark_session	= null;
+
 	private static JavaSparkContext	sc				= null;
 
 	private static SimpleDateFormat	mms				= new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSZ");
@@ -90,10 +88,10 @@ public class Tester
 			// threads set
 			for (int i = 0; i < test_threads; i++)
 			{
-				jobs[i] = new Job(cluster, sc, i, queries);
+				jobs[i] = new Job(cluster, sc, i, queries, suffle);
 				jobs[i].start();
 			}
-			
+
 			for (Job j : jobs)
 			{
 				try

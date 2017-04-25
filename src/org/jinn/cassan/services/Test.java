@@ -104,7 +104,6 @@ public class Test
 			for (Row r : rs)
 			{
 				rs_count++;
-				System.out.println(r);
 			}
 			long e = System.currentTimeMillis();
 			System.out.println((e - s) + "ms rs_count: " + rs_count);
@@ -127,7 +126,7 @@ public class Test
 		for (String sq : spark_queires)
 		{
 			long s = System.currentTimeMillis();
-			arr = sq.split("\\s*,\\s*");
+			arr = sq.replace(";", "").split("\\s*,\\s*");
 
 			if (arr[0].equals("spark,"))
 			{
@@ -135,11 +134,10 @@ public class Test
 			}
 			if (arr.length >= 5)
 			{
-				data = javaFunctions(sc).cassandraTable(arr[1], arr[2]).where(arr[3], Integer.parseInt(arr[4]))
-						.limit(Long.parseLong(arr[5].replace(";", "")));
+				data = javaFunctions(sc).cassandraTable(arr[1], arr[2]).where(arr[3], Integer.parseInt(arr[4]));
 			} else if (arr.length >= 3)
 			{
-				data = javaFunctions(sc).cassandraTable(arr[1], arr[2]);
+				data = javaFunctions(sc).cassandraTable(arr[1], arr[2].replace(";", ""));
 			}
 
 			rs_count = data.count();
