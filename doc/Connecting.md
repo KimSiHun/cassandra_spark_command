@@ -1,6 +1,6 @@
-#connecting
+# Connecting
 
-** using Java **
+**using Java**
 ***
 cassandra - maven  
  
@@ -21,5 +21,14 @@ cassandra - maven
 <pre><code>
 import com.datastax.driver.core.Cluster;<br>
 import com.datastax.driver.core.Session;<br>
+
+public Cluster get_cluster(){
+	return Cluster.builder().addContactPoint("127.0.0.1").withPoolingOptions(pool).build();
+}
+
+public Session get_session(Cluster cluster, String key_space){
+	return Cluster.connect(key_space);
+}
+
 </code></pre>
 
