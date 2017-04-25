@@ -10,7 +10,7 @@ public class Configure
 {
 	private static final String	ROOT_DIR_PATH	= System.getProperty("user.dir");
 	private static final String	CONF_DIR_PATH	= ROOT_DIR_PATH + "/conf";
-	private static final String	SQL_DIR_PATH	= ROOT_DIR_PATH + "/sql";
+	public static final String	SQL_DIR_PATH	= ROOT_DIR_PATH + "/sql";
 
 	private static File conf_dir()
 	{
@@ -66,6 +66,12 @@ public class Configure
 		} else if (null != s && s.equals("tester.threads"))
 		{
 			key = "cassandra.tester.threads";
+		} else if (null != s && s.equals("sp.host"))
+		{
+			key = "spark.host";
+		} else if (null != s && s.equals("sp.dc"))
+		{
+			key = "spark.dc";
 		}
 
 		if (null != key)

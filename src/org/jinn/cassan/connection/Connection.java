@@ -10,55 +10,48 @@ import com.datastax.driver.core.Session;
 public class Connection
 {
 
-	private String	cs_dc;
-	private String	cs_host;
-	private String	cs_keyspace;
-
-	public Connection()
-	{
-		cs_dc = Configure.get_conf_value("cs.dc");
-		cs_host = Configure.get_conf_value("cs.host");
-		cs_keyspace = Configure.get_conf_value("cs.keyspace");
-	}
-
-	public Cluster get_cluster()
+	public Cluster get_cluster(String cs_host)
 	{
 		return Cluster.builder().addContactPoint(cs_host).build();
 	}
 
-	public Session get_session(Cluster cluster)
+	public Session get_session(Cluster cluster, String cs_keyspace)
 	{
 		Session session = cluster.connect(cs_keyspace);
 
 		return session;
 	}
 
-	public void disConnection(Cluster cluster, Session session)
+	public void disConnection(Cluster cluster)
 	{
-		session.close();
 		cluster.close();
 	}
 
-	public SparkConf spark_configure()
+	public Cluster get_spark_cluster(String sp_host)
+	{
+		return Cluster.builder().addContactPoint(sp_host).build();
+	}
+
+	public SparkConf spark_configure(String sp_host, String sp_dc)
 	{
 		SparkConf spark_conf = null;
-		String cassandra_url = cs_host;
-		if (null != cassandra_url)
+		String spark_url = sp_host;
+		System.out.println(spark_url);
+		if (null != spark_url)
 		{
-			spark_conf = new SparkConf(true).setAppName("tester").set("spark.cassandra.auth.username", "cassandra")
-					.set("spark.cassandra.auth.password", "cassandra").setMaster("local")
-					.set("spark.cassandra.connection.host", cs_host);
-			if (null != cs_dc)
+			spark_conf = new SparkConf(true).setAppName("cassandra").setMaster("local")
+					.set("spark.cassandra.connection.host", spark_url).set("spark.executor.memory", "2g");
+			if (null != sp_dc)
 			{
-				spark_conf.set("spark.cassandra.connection.local_dc", cs_dc);
+				spark_conf.set("spark.cassandra.connection.local_dc", sp_dc);
 			}
 		}
 		return spark_conf;
 	}
 
-	public JavaSparkContext spark_con()
+	public JavaSparkContext spark_con(String sp_host, String sp_dc)
 	{
-		SparkConf spark_conf = spark_configure();
+		SparkConf spark_conf = spark_configure(sp_host, sp_dc);
 		JavaSparkContext sc = new JavaSparkContext(spark_conf);
 
 		return sc;

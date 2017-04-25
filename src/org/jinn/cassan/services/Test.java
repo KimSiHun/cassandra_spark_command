@@ -92,8 +92,8 @@ public class Test
 
 	public void test()
 	{
-		Cluster cluster = con.get_cluster();
-		Session session = con.get_session(cluster);
+		Cluster cluster = con.get_cluster(Configure.get_conf_value("cs.host"));
+		Session session = con.get_session(cluster, test_dir_path);
 
 		for (String q : queries)
 		{
@@ -109,13 +109,16 @@ public class Test
 			long e = System.currentTimeMillis();
 			System.out.println((e - s) + "ms rs_count: " + rs_count);
 		}
-
-		con.disConnection(cluster, session);
+		session.close();
+		con.disConnection(cluster);
 	}
 
 	public void spark_test()
 	{
-		JavaSparkContext sc = con.spark_con();
+		Cluster cluster = con.get_spark_cluster(Configure.get_conf_value("sp.host"));
+		Session session = con.get_session(cluster, test_dir_path);
+
+		JavaSparkContext sc = con.spark_con(Configure.get_conf_value("sp.host"), Configure.get_conf_value("sp.dc"));
 		JavaRDD<CassandraRow> data = null;
 		String arr[] = null;
 
@@ -126,20 +129,27 @@ public class Test
 			long s = System.currentTimeMillis();
 			arr = sq.split("\\s*,\\s*");
 
+			if (arr[0].equals("spark,"))
+			{
+				arr[0] = "spark";
+			}
 			if (arr.length >= 5)
 			{
-				data = javaFunctions(sc).cassandraTable(arr[1], arr[2]).where(arr[3], arr[4]);
+				data = javaFunctions(sc).cassandraTable(arr[1], arr[2]).where(arr[3], Integer.parseInt(arr[4]))
+						.limit(Long.parseLong(arr[5].replace(";", "")));
 			} else if (arr.length >= 3)
 			{
 				data = javaFunctions(sc).cassandraTable(arr[1], arr[2]);
 			}
 
-			System.out.println(data.first());
+			rs_count = data.count();
 
 			long e = System.currentTimeMillis();
 			System.out.println((e - s) + "ms rs_count:" + rs_count);
 
 		}
+		session.close();
+		con.disConnection(cluster);
 		con.spark_discon(sc);
 	}
 
