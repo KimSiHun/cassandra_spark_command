@@ -1,5 +1,10 @@
 # cassandra_spark_command
 spark_command_usage
+***  
+
+# connection basic
+***  
+Read Doc/connection.md
 
 **connection options for cassandra**
 
