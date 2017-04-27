@@ -39,9 +39,12 @@ public class Tester
 
 	private static void termination_check()
 	{
+		long e_time = System.currentTimeMillis();
+		
 		con.spark_discon(sc);
 		con.disConnection(spark_cluster);
 		con.disConnection(cluster);
+		System.out.println("Program end - " + e_time);
 	}
 
 	public static void main(String[] args)
@@ -73,6 +76,9 @@ public class Tester
 			public void run()
 			{
 				termination_check();
+				long e_time = System.currentTimeMillis();
+				System.out.println("Program End Time is - "+ e_time);
+				System.out.println("Program run duraing - "+(e_time-PR_START_TIME)/1000.0+"s");
 			}
 		});
 
@@ -80,36 +86,37 @@ public class Tester
 		ReadQuery rq = new ReadQuery();
 		List<String> queries = rq.read_queries(keyspace, sql_dir_path, sql_dir);
 
-		if (queries.size() > 0)
-		{
-			long s = System.currentTimeMillis();
-
-			Job jobs[] = new Job[test_threads];
-			// threads set
-			for (int i = 0; i < test_threads; i++)
+		while(true){
+			
+			if (queries.size() > 0)
 			{
-				jobs[i] = new Job(cluster, sc, i, queries, suffle);
-				jobs[i].start();
-			}
-
-			for (Job j : jobs)
-			{
-				try
+				long s = System.currentTimeMillis();
+				
+				Job jobs[] = new Job[test_threads];
+				// threads set
+				for (int i = 0; i < test_threads; i++)
 				{
-					j.join();
-				} catch (InterruptedException e1)
-				{
-					System.err.println(e1);
+					jobs[i] = new Job(cluster, spark_cluster, sc, i, queries, suffle);
+					jobs[i].start();
 				}
-			}
-
-			long e = System.currentTimeMillis();
-			System.out.println("the elapsed time for one loop: " + (e - s) / 1000.0 + "s");
-		} else
-		{
-			System.out.println("check query file. query size : " + queries.size());
+				
+				for (Job j : jobs)
+				{
+					try
+					{
+						j.join();
+					} catch (InterruptedException e1)
+					{
+						System.err.println(e1);
+					}
+				}
+				
+				long e = System.currentTimeMillis();
+				System.out.println("the elapsed time for one loop: " + (e - s) / 1000.0 + "s");
+			} else
+			{
+				System.out.println("check query file. query size : " + queries.size());
+			}	
 		}
-
 	}
-
 }

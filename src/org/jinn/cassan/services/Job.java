@@ -17,21 +17,24 @@ public class Job extends Thread
 {
 
 	private Cluster				cluster;
+	private Cluster				spark_cluster;
 	private JavaSparkContext	sc;
 	private int					id;
 	private List<String>		queries;
 	private boolean				suffle;
 
-	public Job(Cluster cluster, JavaSparkContext sc, int id, List<String> queries, boolean suffle)
+	public Job(Cluster cluster, Cluster spark_cluster, JavaSparkContext sc, int id, List<String> queries,
+			boolean suffle)
 	{
 		this.cluster = cluster;
+		this.spark_cluster = spark_cluster;
 		this.sc = sc;
 		this.id = id;
 		this.queries = queries;
 		this.suffle = suffle;
 	}
 
-	private void execute(Cluster cluster, Session session, JavaSparkContext sc, int id, String query)
+	private void execute(Session session, JavaSparkContext sc, int id, String query)
 	{
 		String query_type = query.trim().substring(0, 6).toLowerCase().trim();
 		if (query_type.equals("spark,"))
@@ -53,7 +56,7 @@ public class Job extends Thread
 				ResultSet rs = session.execute(query);
 				for (Row r : rs)
 				{
-					if (null !=r)
+					if (null != r)
 					{
 						rs_count++;
 					}
@@ -64,12 +67,13 @@ public class Job extends Thread
 				JavaRDD<CassandraRow> data = null;
 				if (arr.length >= 5)
 				{
-					data = javaFunctions(sc).cassandraTable(arr[1], arr[2]).where(arr[3], arr[4]).limit(Long.parseLong(arr[5]));
+					data = javaFunctions(sc).cassandraTable(arr[1], arr[2]).where(arr[3], arr[4])
+							.limit(Long.parseLong(arr[5]));
 				} else if (arr.length >= 3)
 				{
 					data = javaFunctions(sc).cassandraTable(arr[1], arr[2]);
 				}
-				
+
 				rs_count = data.count();
 			}
 			long e_time = System.currentTimeMillis();
@@ -92,7 +96,7 @@ public class Job extends Thread
 		long s_time = System.currentTimeMillis();
 
 		Session session = cluster.newSession();
-
+		
 		int idx = 0;
 		int size = queries.size();
 		int start_index = (int) (Math.random() * size);
@@ -110,7 +114,7 @@ public class Job extends Thread
 				}
 				System.out.println(Job.currentThread().getName() + " " + query);
 
-				execute(cluster, session, sc, idx, query);
+				execute(session, sc, idx, query);
 				executed++;
 			}
 		}

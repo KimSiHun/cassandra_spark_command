@@ -15,6 +15,7 @@ public class Connection
 		PoolingOptions pool = new PoolingOptions();
 		pool.setPoolTimeoutMillis(15);
 		pool.setHeartbeatIntervalSeconds(60);
+		
 		return Cluster.builder().addContactPoint(cs_host).withPoolingOptions(pool).build();
 	}
 
@@ -43,7 +44,7 @@ public class Connection
 		if (null != spark_url)
 		{
 			spark_conf = new SparkConf(true).setAppName("cassandra").setMaster("local")
-					.set("spark.cassandra.connection.host", spark_url).set("spark.executor.memory", "2g");
+					.set("spark.cassandra.connection.host", spark_url).set("spark.executor.memory", "4g");
 			if (null != sp_dc)
 			{
 				spark_conf.set("spark.cassandra.connection.local_dc", sp_dc);
