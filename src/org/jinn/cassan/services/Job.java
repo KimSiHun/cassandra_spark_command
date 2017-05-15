@@ -16,8 +16,7 @@ import com.datastax.spark.connector.japi.CassandraRow;
 public class Job extends Thread
 {
 
-	private Cluster				cluster;
-	private Cluster				spark_cluster;
+	private Cluster				cluster;	
 	private JavaSparkContext	sc;
 	private int					id;
 	private List<String>		queries;
@@ -27,7 +26,6 @@ public class Job extends Thread
 			boolean suffle)
 	{
 		this.cluster = cluster;
-		this.spark_cluster = spark_cluster;
 		this.sc = sc;
 		this.id = id;
 		this.queries = queries;
@@ -73,7 +71,7 @@ public class Job extends Thread
 				{
 					data = javaFunctions(sc).cassandraTable(arr[1], arr[2]);
 				}
-
+				
 				rs_count = data.count();
 			}
 			long e_time = System.currentTimeMillis();
@@ -96,7 +94,7 @@ public class Job extends Thread
 		long s_time = System.currentTimeMillis();
 
 		Session session = cluster.newSession();
-		
+
 		int idx = 0;
 		int size = queries.size();
 		int start_index = (int) (Math.random() * size);

@@ -15,7 +15,7 @@ public class Connection
 		PoolingOptions pool = new PoolingOptions();
 		pool.setPoolTimeoutMillis(15);
 		pool.setHeartbeatIntervalSeconds(60);
-		
+
 		return Cluster.builder().addContactPoint(cs_host).withPoolingOptions(pool).build();
 	}
 
